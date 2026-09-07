@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>公所承辦困境問卷</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --bg: #FFFDF6;
+    --surface: #FFF6DE;
+    --surface-2: #FFFFFF;
+    --surface-3: #EAF6F5;
+    --text: #33413C;
+    --text-dim: #5F6F69;
+    --accent: #77C9C5;
+    --accent-2: #2E8F89;
+    --yellow: #FFDB7B;
+    --green: #B9D672;
+    --border: #EAE6D2;
+    --danger: #E2734F;
+    --danger-deep: #B24A2E;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Microsoft JhengHei", "Heiti TC", sans-serif;
+  }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 28px 20px 60px; }
+  .headline { font-family: "Noto Serif TC", "Songti TC", serif; font-weight: 700; }
+  h1.headline { font-size: 24px; margin: 0 0 6px; color: var(--accent-2); line-height: 1.4; }
+  .sub { font-size: 14px; color: var(--text-dim); line-height: 1.7; margin: 0 0 4px; }
+  .note {
+    font-size: 12.5px; color: var(--text-dim); line-height: 1.7;
+    background: var(--surface); border-left: 3px solid var(--yellow);
+    padding: 10px 12px; border-radius: 2px; margin: 14px 0 20px;
+  }
+  .facilitator-link {
+    display: inline-block; font-size: 12.5px; color: var(--accent-2);
+    text-decoration: underline; margin-bottom: 18px; cursor: pointer; background: none; border: none; padding: 0;
+    font-family: inherit;
+  }
+  section.cat { margin-top: 26px; }
+  .cat-title {
+    font-size: 15px; font-weight: 700; color: var(--accent-2);
+    border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 16px;
+  }
+  fieldset { border: none; margin: 0 0 20px; padding: 0; }
+  legend { font-size: 14.5px; line-height: 1.65; margin-bottom: 10px; padding: 0; }
+  .scale-row { display: flex; align-items: center; gap: 6px; }
+  .scale-end { font-size: 11px; color: var(--text-dim); flex: 0 0 52px; line-height: 1.4; }
+  .scale-end.right { text-align: right; }
+  .scale-opts { display: flex; gap: 6px; flex: 1; justify-content: center; }
+  .opt { position: relative; }
+  .opt input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+  .opt label {
+    display: flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--surface-2); border: 1px solid var(--border);
+    font-size: 13px; color: var(--text-dim); cursor: pointer;
+    transition: background .12s ease, border-color .12s ease, color .12s ease;
+  }
+  .opt input:checked + label { background: var(--accent); border-color: var(--accent); color: var(--text); font-weight: 700; }
+  .demo-group { display: flex; flex-direction: column; gap: 8px; margin: 14px 0 4px; }
+  .demo-opt {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 4px; padding: 12px 14px; cursor: pointer;
+  }
+  .demo-opt input { accent-color: var(--accent); width: 16px; height: 16px; }
+  .demo-opt span { font-size: 14.5px; }
+  textarea {
+    width: 100%; min-height: 90px; margin-top: 8px;
+    background: var(--surface-2); border: 1px solid var(--border);
+    color: var(--text); border-radius: 4px; padding: 10px 12px;
+    font-size: 14px; font-family: inherit; resize: vertical;
+  }
+  .btn-primary {
+    width: 100%; background: var(--accent); color: var(--text);
+    border: none; font-size: 16px; font-weight: 700;
+    padding: 14px; border-radius: 4px; cursor: pointer; margin-top: 24px;
+  }
+  .btn-primary:disabled { opacity: 0.5; cursor: default; }
+  .btn-outline {
+    background: transparent; color: var(--text); border: 1px solid var(--border);
+    font-size: 14px; padding: 11px 18px; border-radius: 4px; cursor: pointer;
+  }
+  .warn { color: var(--danger-deep); font-size: 13px; margin-top: 10px; display: none; }
+  #screen-thanks { display: none; text-align: center; padding-top: 40px; }
+  #screen-thanks .headline { font-size: 22px; }
+  #screen-stats { display: none; }
+  .stat-summary { font-size: 13px; color: var(--text-dim); margin-bottom: 18px; }
+  .stat-cat { font-size: 13px; font-weight: 700; color: var(--accent-2); margin: 22px 0 10px; }
+  .stat-row { margin-bottom: 16px; }
+  .stat-label { font-size: 13.5px; margin-bottom: 5px; }
+  .stat-bar-track { background: var(--surface-2); border-radius: 3px; height: 10px; overflow: hidden; }
+  .stat-bar-fill { height: 100%; background: var(--green); border-radius: 3px; }
+  .stat-breakdown { font-size: 11.5px; color: var(--text-dim); margin-top: 4px; }
+  .stat-avg { float: right; font-size: 12.5px; color: var(--accent-2); font-weight: 700; }
+  .comments-box { margin-top: 26px; background: var(--surface); border-radius: 4px; padding: 14px 16px; }
+  .comment-item { font-size: 13px; line-height: 1.7; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .comment-item:last-child { border-bottom: none; }
+  .actions-row { display: flex; gap: 10px; margin-top: 22px; }
+  .actions-row button { flex: 1; }
+  .loading { font-size: 13px; color: var(--text-dim); text-align: center; padding: 20px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div id="screen-form">
+    <h1 class="headline">公所承辦困境問卷</h1>
+    <p class="sub">這份問卷根據先前的訪談內容整理而成，想了解這些困境在大家身上出現的普遍程度。</p>
+    <div class="note">匿名填答，只記錄年資分組，不會收集姓名。結果會以整體平均呈現，不會顯示個別回答。</div>
+    <div class="note" id="config-warning" style="display:none; border-left-color: var(--danger); color: var(--danger-deep);">
+      這個頁面還沒有設定 Supabase 連線資訊。請打開這個 HTML 檔案，找到 <code>SUPABASE_URL</code> 與 <code>SUPABASE_ANON_KEY</code> 這兩行，換成你自己 Supabase 專案的網址與 anon public 金鑰後存檔，再重新上傳。
+    </div>
+    <button type="button" class="facilitator-link" onclick="showStats()">主持人：直接查看目前統計結果</button>
+
+    <fieldset>
+      <legend style="font-weight:700; color: var(--accent-2);">你目前接觸這項業務的年資？</legend>
+      <div class="demo-group" id="demo-group">
+        <label class="demo-opt"><input type="radio" name="demo" value="new"><span>新進（未滿 1 年）</span></label>
+        <label class="demo-opt"><input type="radio" name="demo" value="mid"><span>已有些經驗（1–3 年）</span></label>
+        <label class="demo-opt"><input type="radio" name="demo" value="senior"><span>資深（3 年以上）</span></label>
+      </div>
+    </fieldset>
+
+    <div id="items-container"></div>
+
+    <fieldset>
+      <legend style="font-weight:700; color: var(--accent-2);">還有沒有其他困擾，是上面題目沒問到的？（選填）</legend>
+      <textarea id="comment-field" placeholder="自由填寫..."></textarea>
+    </fieldset>
+
+    <p class="warn" id="warn-msg">請完成所有題目的作答（年資分組與 12 題都要選）。</p>
+    <button class="btn-primary" id="submit-btn" onclick="submitSurvey()">送出問卷</button>
+  </div>
+
+  <div id="screen-thanks">
+    <div class="headline">謝謝你的填答</div>
+    <p class="sub">你的回答已經匿名加入整體統計。</p>
+    <div class="actions-row" style="margin-top:24px;">
+      <button class="btn-outline" onclick="showStats()">查看目前現場統計</button>
+    </div>
+  </div>
+
+  <div id="screen-stats">
+    <h1 class="headline">目前現場統計</h1>
+    <div id="stats-body"><div class="loading">讀取中...</div></div>
+    <div class="actions-row">
+      <button class="btn-outline" onclick="refreshStats()">重新整理</button>
+      <button class="btn-outline" onclick="backToForm()">回到問卷</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ====== 請把下面兩行換成你自己 Supabase 專案的資訊 ======
+const SUPABASE_URL = 'https://yrqzaxhdssihuwimzxcx.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_wvT5p3N2IPOUTf8QYtXv6Q_IT02OPtI';
+// =======================================================
+
+const items = [
+  { id: 'a1', cat: '摸索期與交接', label: '資料交接不足', text: '剛接手時，前手留下的資料或交接說明明顯不足，我得自己從頭摸索。' },
+  { id: 'a2', cat: '摸索期與交接', label: '找不到人問', text: '剛接手時，遇到不懂的地方常常找不到人可以問。' },
+  { id: 'a3', cat: '摸索期與交接', label: '雜項業務多', text: '一開始被分配的業務中，夾雜許多跟社區無關的雜項工作。' },
+  { id: 'b1', cat: '與社區互動', label: '淪為免費總幹事', text: '我實際上常常變成社區的「免費總幹事」或會計，幫忙代寫代做。' },
+  { id: 'b2', cat: '與社區互動', label: '界線拿捏難', text: '拿捏「該幫忙」跟「該讓社區自己做」的界線，對我來說是持續的挑戰。' },
+  { id: 'b3', cat: '與社區互動', label: '捲入人事糾紛', text: '我曾經被捲入社區內部的人事糾紛或前後任交接爭議，卻沒有實質的裁決權。' },
+  { id: 'b4', cat: '與社區互動', label: '停滯社區無力感', text: '面對長期停滯、找不到人接手的社區，我常感到無力。' },
+  { id: 'c1', cat: '與公部門系統', label: '政策脫離現實', text: '上級的政策或考核指標，常常沒有考慮到我們轄區的實際狀況。' },
+  { id: 'c2', cat: '與公部門系統', label: '長官態度影響大', text: '長官對社區業務的重視程度，直接影響我能拿到的支持與資源。' },
+  { id: 'c3', cat: '與公部門系統', label: '被迫硬推政策', text: '為了配合選拔或考核等要求，我曾經在社區不情願的情況下硬推。' },
+  { id: 'd1', cat: '個人身心負荷', label: '犧牲下班假日', text: '這份業務讓我經常需要犧牲下班或假日時間。' },
+  { id: 'd2', cat: '個人身心負荷', label: '理念與現實落差', text: '「理想中由下而上」跟「實務上由上而下」之間的落差，讓我感到內心衝突。' }
+];
+const categories = ['摸索期與交接', '與社區互動', '與公部門系統', '個人身心負荷'];
+const scaleLabels = ['1', '2', '3', '4', '5'];
+
+function buildForm() {
+  const container = document.getElementById('items-container');
+  categories.forEach(cat => {
+    const section = document.createElement('section');
+    section.className = 'cat';
+    const catItems = items.filter(i => i.cat === cat);
+    let html = '<div class="cat-title">' + cat + '</div>';
+    catItems.forEach(item => {
+      html += '<fieldset><legend>' + item.text + '</legend><div class="scale-row">';
+      html += '<div class="scale-end">完全不符合</div><div class="scale-opts">';
+      scaleLabels.forEach(v => {
+        const inputId = item.id + '-' + v;
+        html += '<div class="opt"><input type="radio" id="' + inputId + '" name="' + item.id + '" value="' + v + '">' +
+          '<label for="' + inputId + '">' + v + '</label></div>';
+      });
+      html += '</div><div class="scale-end right">完全符合</div></div></fieldset>';
+    });
+    section.innerHTML = html;
+    container.appendChild(section);
+  });
+}
+buildForm();
+
+let sb = null;
+function isConfigured() {
+  return SUPABASE_URL.indexOf('YOUR-PROJECT-ID') === -1 && SUPABASE_ANON_KEY.indexOf('YOUR-ANON-PUBLIC-KEY') === -1;
+}
+if (isConfigured() && window.supabase) {
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+} else {
+  const cw = document.getElementById('config-warning');
+  if (cw) cw.style.display = 'block';
+  const sBtn = document.getElementById('submit-btn');
+  if (sBtn) { sBtn.disabled = true; sBtn.textContent = '尚未設定資料庫連線'; }
+}
+
+function collectAnswers() {
+  const demoInput = document.querySelector('input[name="demo"]:checked');
+  if (!demoInput) return null;
+  const scores = {};
+  for (const item of items) {
+    const checked = document.querySelector('input[name="' + item.id + '"]:checked');
+    if (!checked) return null;
+    scores[item.id] = parseInt(checked.value, 10);
+  }
+  return { group: demoInput.value, scores, comment: document.getElementById('comment-field').value.trim() };
+}
+
+async function submitSurvey() {
+  const data = collectAnswers();
+  const warnEl = document.getElementById('warn-msg');
+  if (!data) {
+    warnEl.style.display = 'block';
+    warnEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+  warnEl.style.display = 'none';
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = '送出中...';
+  try {
+    if (!sb) throw new Error('not-configured');
+    const { error } = await sb.from('survey_responses').insert([{
+      exp_group: data.group, scores: data.scores, comment: data.comment || null
+    }]);
+    if (error) throw error;
+    document.getElementById('screen-form').style.display = 'none';
+    document.getElementById('screen-thanks').style.display = 'block';
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = '送出問卷';
+    warnEl.textContent = (e && e.message === 'not-configured')
+      ? '尚未設定 Supabase 連線資訊，請見上方提示。'
+      : '送出時發生問題，請確認網路連線後再試一次。';
+    warnEl.style.display = 'block';
+  }
+}
+
+function backToForm() {
+  document.getElementById('screen-stats').style.display = 'none';
+  document.getElementById('screen-thanks').style.display = 'none';
+  document.getElementById('screen-form').style.display = 'block';
+}
+
+async function showStats() {
+  document.getElementById('screen-form').style.display = 'none';
+  document.getElementById('screen-thanks').style.display = 'none';
+  document.getElementById('screen-stats').style.display = 'block';
+  await refreshStats();
+}
+
+async function refreshStats() {
+  const body = document.getElementById('stats-body');
+  body.innerHTML = '<div class="loading">讀取中...</div>';
+  if (!sb) {
+    body.innerHTML = '<div class="stat-summary">尚未設定 Supabase 連線資訊，請見問卷頁面上方提示。</div>';
+    return;
+  }
+  try {
+    const { data: rows, error } = await sb.from('survey_responses').select('exp_group, scores, comment');
+    if (error) throw error;
+    if (!rows || rows.length === 0) {
+      body.innerHTML = '<div class="stat-summary">目前還沒有人送出問卷。</div>';
+      return;
+    }
+    const responses = rows.map(r => ({ group: r.exp_group, scores: r.scores, comment: r.comment }));
+    const groupCounts = { new: 0, mid: 0, senior: 0 };
+    responses.forEach(r => { if (groupCounts[r.group] !== undefined) groupCounts[r.group]++; });
+
+    let html = '<div class="stat-summary">目前共 ' + responses.length + ' 份回答　（新進 ' +
+      groupCounts.new + '　經驗 ' + groupCounts.mid + '　資深 ' + groupCounts.senior + '）</div>';
+
+    categories.forEach(cat => {
+      html += '<div class="stat-cat">' + cat + '</div>';
+      const catItems = items.filter(i => i.cat === cat);
+      catItems.forEach(item => {
+        const vals = responses.map(r => r.scores[item.id]).filter(v => typeof v === 'number');
+        const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+        const byGroup = {};
+        ['new', 'mid', 'senior'].forEach(g => {
+          const gv = responses.filter(r => r.group === g).map(r => r.scores[item.id]).filter(v => typeof v === 'number');
+          byGroup[g] = gv.length ? (gv.reduce((a, b) => a + b, 0) / gv.length).toFixed(1) : '－';
+        });
+        const pct = (avg / 5) * 100;
+        html += '<div class="stat-row">' +
+          '<div class="stat-label">' + item.label + '<span class="stat-avg">' + avg.toFixed(1) + ' / 5</span></div>' +
+          '<div class="stat-bar-track"><div class="stat-bar-fill" style="width:' + pct + '%"></div></div>' +
+          '<div class="stat-breakdown">新進 ' + byGroup.new + '　經驗 ' + byGroup.mid + '　資深 ' + byGroup.senior + '</div></div>';
+      });
+    });
+
+    const comments = responses.map(r => r.comment).filter(c => c && c.length > 0);
+    if (comments.length > 0) {
+      html += '<div class="comments-box"><div class="stat-cat" style="margin-top:0;">大家寫下的其他困擾</div>';
+      comments.forEach(c => { html += '<div class="comment-item">' + c.replace(/</g, '&lt;') + '</div>'; });
+      html += '</div>';
+    }
+    body.innerHTML = html;
+  } catch (e) {
+    body.innerHTML = '<div class="stat-summary">讀取統計時發生問題：' + (e && e.message ? e.message.replace(/</g, '&lt;') : '未知錯誤') + '</div>';
+  }
+}
+</script>
+</body>
+</html>
